@@ -18,6 +18,7 @@ TEST_PACKAGES_DEFAULT="notest"
 OUTOFDIR_BUILD_DEFAULT="nooutofdir"
 GETSRC_DEFAULT="nogetsrc"
 
+MOCK_BUILDER_EL7_DEFAULT=epel-7-x86_64
 MOCK_BUILDER_EL6_DEFAULT=epel-6-x86_64
 MOCK_BUILDER_EL5_DEFAULT=epel-5-x86_64
 
@@ -66,6 +67,7 @@ done
 [ -z "$OUTOFDIR_BUILD" ] && OUTOFDIR_BUILD="$OUTOFDIR_BUILD_DEFAULT" || true
 [ -z "$GETSRC" ] && GETSRC="$GETSRC_DEFAULT" || true
 
+[ -z "$MOCK_BUILDER_EL7" ] && MOCK_BUILDER_EL7="$MOCK_BUILDER_EL7_DEFAULT" || true
 [ -z "$MOCK_BUILDER_EL6" ] && MOCK_BUILDER_EL6="$MOCK_BUILDER_EL6_DEFAULT" || true
 [ -z "$MOCK_BUILDER_EL5" ] && MOCK_BUILDER_EL5="$MOCK_BUILDER_EL5_DEFAULT" || true
 
@@ -82,6 +84,7 @@ echo "::::: PIPEBUILD_RPM_VERSION: $PIPEBUILD_RPM_VERSION"
 echo ":::::"
 
 echo ":::::"
+echo "::::: MOCK_BUILDER_EL7: $MOCK_BUILDER_EL7"
 echo "::::: MOCK_BUILDER_EL6: $MOCK_BUILDER_EL6"
 echo "::::: MOCK_BUILDER_EL5: $MOCK_BUILDER_EL5"
 echo ":::::"
@@ -147,6 +150,9 @@ case "$MOCK_BUILDER" in
 		;;
 	$MOCK_BUILDER_EL6)
 		pkg_dist_suffix=".el6"
+		;;
+	$MOCK_BUILDER_EL7)
+		pkg_dist_suffix=".el7"
 		;;
 	*)
 		pkg_dist_suffix=""
@@ -298,13 +304,15 @@ case $BUILDER in
 			echo ":::::"
 			echo "::::: downloading all files reference in spec with url"
 			echo ":::::"
-			spectool --define '%_topdir '"`pwd`" --define '%_sourcedir %{_topdir}' --define "%dist $pkg_dist_suffix" -A -g *.spec
+                        for spec in *.spec; do
+      				spectool --define '_topdir '"`pwd`" --define '_sourcedir %{_topdir}' --define "dist $pkg_dist_suffix" -A -g $spec
+                        done
 
 			# for compatibility with github and spectool on el6
 			# rename downloaded file to requested name befored github redirects
-			s=$(spectool -l *.spec  | grep Source0: | cut -d : -f 2- | tr -d " ")
-			if [ "$SOURCE_TGZ_RENAME_HACK" = "YES" ]
+			if [ "$SOURCE_TGZ_RENAME_HACK" == "YES" ]
 			then
+			        s=$(spectool -l *.spec  | grep Source0: | cut -d : -f 2- | tr -d " ")
 				s=$(basename "$s" ".tar.gz")
 				if [ -f "$s" ]
 				then
